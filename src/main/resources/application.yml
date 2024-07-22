@@ -1,0 +1,5 @@
+github:
+  api:
+    base-url: https://api.github.com
+    repos-endpoint: /users/{username}/repos
+    branches-endpoint: /repos/{owner}/{repo}/branches
