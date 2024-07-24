@@ -13,7 +13,7 @@ class GlobalExceptionHandler {
     @ExceptionHandler(HttpMediaTypeNotAcceptableException.class)
     ResponseEntity<ErrorResponseModel> handleMediaTypeNotAcceptableException(HttpMediaTypeNotAcceptableException ex) {
 
-        ErrorResponseModel response = new ErrorResponseModel(HttpStatus.NOT_ACCEPTABLE.value(), ex.getMessage());
+        var response = new ErrorResponseModel(HttpStatus.NOT_ACCEPTABLE.value(), ex.getMessage());
 
         return new ResponseEntity<>(response, HttpStatusCode.valueOf(response.status()));
     }
@@ -21,7 +21,15 @@ class GlobalExceptionHandler {
     @ExceptionHandler(InvalidUserNameException.class)
     ResponseEntity<ErrorResponseModel> handleInvalidUserNameException(InvalidUserNameException ex) {
 
-        ErrorResponseModel response = new ErrorResponseModel(HttpStatus.BAD_REQUEST.value(), ex.getMessage());
+        var response = new ErrorResponseModel(HttpStatus.BAD_REQUEST.value(), ex.getMessage());
+
+        return new ResponseEntity<>(response, HttpStatusCode.valueOf(response.status()));
+    }
+
+    @ExceptionHandler(UserNotFoundException.class)
+    public ResponseEntity<ErrorResponseModel> handleUserNotFoundException(UserNotFoundException ex) {
+
+        var response = new ErrorResponseModel(HttpStatus.NOT_FOUND.value(), ex.getMessage());
 
         return new ResponseEntity<>(response, HttpStatusCode.valueOf(response.status()));
     }
