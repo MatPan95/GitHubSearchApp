@@ -1,0 +1,7 @@
+<cache alias="userReposCache">
+    <key-type>java.lang.String</key-type>
+    <value-type>java.util.List</value-type>
+    <expiry>
+        <ttl unit="minutes">1</ttl>
+    </expiry>
+</cache>
