@@ -1,25 +1,28 @@
 package org.example.githubsearchapp;
 
 import lombok.AllArgsConstructor;
-import org.example.githubsearchapp.gitHubData.GitHubRestClient;
-import org.example.githubsearchapp.gitHubData.model.Repo;
+import org.example.githubsearchapp.dataAccetion.GitHubGetBranches;
+import org.example.githubsearchapp.dataAccetion.GitHubGetRepos;
+import org.example.githubsearchapp.dataAccetion.model.Repo;
 import org.springframework.stereotype.Service;
 import java.util.List;
-import static org.example.githubsearchapp.gitHubData.RepoUtils.isNotFork;
 
 @Service
 @AllArgsConstructor
 public class AppService {
 
-    GitHubRestClient gitHubRestClient;
+    GitHubGetRepos gitHubGetRepos;
+    GitHubGetBranches gitHubGetBranches;
 
     public List<Repo> getUserRepos(String userName) {
 
-        List<Repo> repos = gitHubRestClient.getRepos(userName);
+        List<Repo> repos = gitHubGetRepos.getReposData(userName);
 
-        return repos.isEmpty() ? repos : gitHubRestClient.getBranches(repos.parallelStream()
-                .filter(isNotFork)
-                .toList(), userName);
+        if(repos.isEmpty()) return repos;
+
+        repos.removeIf(Repo::isFork);
+
+        return gitHubGetBranches.getBranchesData(repos, userName);
     }
 }
 

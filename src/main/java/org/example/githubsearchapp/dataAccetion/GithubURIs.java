@@ -1,4 +1,4 @@
-package org.example.githubsearchapp.gitHubData;
+package org.example.githubsearchapp.dataAccetion;
 
 
 import org.springframework.beans.factory.annotation.Value;

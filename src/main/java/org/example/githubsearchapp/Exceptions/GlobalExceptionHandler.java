@@ -13,7 +13,7 @@ class GlobalExceptionHandler {
 
     @ExceptionHandler(HttpMediaTypeNotAcceptableException.class)
     ResponseEntity<ErrorResponseModel> handleMediaTypeNotAcceptableException() {
-        var response = new ErrorResponseModel(HttpStatus.NOT_ACCEPTABLE.value(), "Use media type: " + MediaType.APPLICATION_JSON);
+        var response = new ErrorResponseModel(HttpStatus.UNSUPPORTED_MEDIA_TYPE.value(), "Use media type: " + MediaType.APPLICATION_JSON);
         return new ResponseEntity<>(response, HttpStatusCode.valueOf(response.status()));
     }
 

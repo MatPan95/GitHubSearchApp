@@ -1,4 +1,4 @@
-package org.example.githubsearchapp.gitHubData.model;
+package org.example.githubsearchapp.dataAccetion.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;

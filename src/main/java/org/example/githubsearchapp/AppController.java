@@ -1,7 +1,7 @@
 package org.example.githubsearchapp;
 
 import lombok.AllArgsConstructor;
-import org.example.githubsearchapp.gitHubData.model.Repo;
+import org.example.githubsearchapp.dataAccetion.model.Repo;
 import org.example.githubsearchapp.validation.MediaTypeValidationService;
 import org.example.githubsearchapp.validation.UserNameValidationService;
 import org.springframework.cache.annotation.Cacheable;
@@ -29,6 +29,7 @@ public class AppController {
     public ResponseEntity<List<Repo>> getUserRepos(@PathVariable String userName, @RequestHeader(value = "Accept", defaultValue = MediaType.APPLICATION_JSON_VALUE) Optional<MediaType> mediaType) {
 
         mediaTypeValidationService.validateMediaType(mediaType);
+
         userNameValidationService.validateUser(userName);
         
         return new ResponseEntity<>(appService.getUserRepos(userName), HttpStatus.OK);
