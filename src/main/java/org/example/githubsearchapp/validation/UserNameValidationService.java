@@ -15,7 +15,7 @@ public class UserNameValidationService {
                 .filter(GitHubUserNameValidators.notEmptyOrLengthOutOfBounds())
                 .filter(GitHubUserNameValidators.hasValidCharacters())
                 .filter(GitHubUserNameValidators.notStartingOrEndingWithHyphen())
-                .orElseThrow(() -> new InvalidUserNameException("Username is invalid"));
+                .orElseThrow(InvalidUserNameException::new);
 
     }
 

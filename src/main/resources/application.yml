@@ -1,3 +1,7 @@
+spring:
+  threads:
+    virtual:
+      enabled: true
 github:
   api:
     repos-endpoint: https://api.github.com/users/{username}/repos

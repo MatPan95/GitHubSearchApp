@@ -30,11 +30,7 @@ public class AppController {
 
         mediaTypeValidationService.validateMediaType(mediaType);
         userNameValidationService.validateUser(userName);
-
-
-
-
-
+        
         return new ResponseEntity<>(appService.getUserRepos(userName), HttpStatus.OK);
 
     }
