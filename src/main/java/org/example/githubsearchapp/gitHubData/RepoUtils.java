@@ -1,6 +1,6 @@
-package org.example.githubsearchapp.gitHubDataAccetion;
+package org.example.githubsearchapp.gitHubData;
 
-import org.example.githubsearchapp.gitHubDataAccetion.model.Repo;
+import org.example.githubsearchapp.gitHubData.model.Repo;
 
 import java.util.function.Predicate;
 

@@ -1,8 +1,8 @@
-package org.example.githubsearchapp.gitHubDataAccetion;
+package org.example.githubsearchapp.gitHubData;
 
 import lombok.AllArgsConstructor;
 import org.example.githubsearchapp.Exceptions.UserNotFoundException;
-import org.example.githubsearchapp.gitHubDataAccetion.model.Repo;
+import org.example.githubsearchapp.gitHubData.model.Repo;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;

@@ -1,11 +1,11 @@
 package org.example.githubsearchapp;
 
 import lombok.AllArgsConstructor;
-import org.example.githubsearchapp.gitHubDataAccetion.GitHubRestClient;
-import org.example.githubsearchapp.gitHubDataAccetion.model.Repo;
+import org.example.githubsearchapp.gitHubData.GitHubRestClient;
+import org.example.githubsearchapp.gitHubData.model.Repo;
 import org.springframework.stereotype.Service;
 import java.util.List;
-import static org.example.githubsearchapp.gitHubDataAccetion.RepoUtils.isNotFork;
+import static org.example.githubsearchapp.gitHubData.RepoUtils.isNotFork;
 
 @Service
 @AllArgsConstructor

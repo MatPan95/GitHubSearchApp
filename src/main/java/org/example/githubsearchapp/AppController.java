@@ -1,7 +1,7 @@
 package org.example.githubsearchapp;
 
 import lombok.AllArgsConstructor;
-import org.example.githubsearchapp.gitHubDataAccetion.model.Repo;
+import org.example.githubsearchapp.gitHubData.model.Repo;
 import org.example.githubsearchapp.validation.MediaTypeValidationService;
 import org.example.githubsearchapp.validation.UserNameValidationService;
 import org.springframework.cache.annotation.Cacheable;

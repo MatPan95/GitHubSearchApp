@@ -1,4 +1,4 @@
-package org.example.githubsearchapp.gitHubDataAccetion;
+package org.example.githubsearchapp.gitHubData;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
