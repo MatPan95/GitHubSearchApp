@@ -18,9 +18,9 @@ public class AppService {
 
         List<Repo> repos = gitHubGetRepos.getReposData(userName);
 
-        if(repos.isEmpty()) return repos;
-
         repos.removeIf(Repo::isFork);
+
+        if(repos.isEmpty()) return repos;
 
         return gitHubGetBranches.getBranchesData(repos, userName);
     }
