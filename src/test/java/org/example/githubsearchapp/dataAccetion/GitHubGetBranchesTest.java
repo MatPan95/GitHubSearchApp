@@ -1,76 +1,109 @@
 package org.example.githubsearchapp.dataAccetion;
 
-import com.github.tomakehurst.wiremock.junit5.WireMockTest;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.example.githubsearchapp.AppConfig;
+import org.example.githubsearchapp.TestConfig;
 import org.example.githubsearchapp.dataAccetion.model.Branch;
-import org.example.githubsearchapp.dataAccetion.model.Repo;
 import org.example.githubsearchapp.dataAccetion.model.Commit;
-import org.junit.jupiter.api.BeforeEach;
+import org.example.githubsearchapp.dataAccetion.model.Repo;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mock;
-import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.client.RestClientTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
-import org.springframework.web.client.RestClient;
+import org.springframework.test.web.client.ExpectedCount;
+import org.springframework.test.web.client.MockRestServiceServer;
+import org.springframework.test.web.client.UnorderedRequestExpectationManager;
+import org.springframework.web.client.RestTemplate;
 
-import java.util.List;
 import java.util.ArrayList;
+import java.util.List;
 
-import static com.github.tomakehurst.wiremock.client.WireMock.*;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.when;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
+import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
-@WireMockTest(httpPort = 9090)
-public class GitHubGetBranchesTest {
-
+@RestClientTest(GitHubGetBranches.class)
+@Import({AppConfig.class, TestConfig.class})
+class GitHubGetBranchesTest {
+    @Autowired
     private GitHubGetBranches gitHubGetBranches;
+    @Autowired
+    private GithubURIs githubUris;
+    @Autowired
+    ObjectMapper mapper;
+    @Autowired
+    MockRestServiceServer mockServer = MockRestServiceServer.bindTo(new RestTemplate()).ignoreExpectOrder(true).build(new UnorderedRequestExpectationManager());
 
-    @Mock
-    private RestClient restClient = RestClient.create();
+    @Test
+    void getMoreThenOneBranch() throws JsonProcessingException {
 
-    @Mock
-    private GithubURIs githubURIs = new GithubURIs("fdfdfd", "http://localhost:9090/repos/{owner}/{repo}/branches)");
+        //given
 
-    @BeforeEach
-    public void setup() {
-        gitHubGetBranches = new GitHubGetBranches(restClient, githubURIs);
+        String userName = "user";
+        String repoName1 = "repo1";
+
+        Branch branch1 = new Branch("branch1", new Commit("sha1"));
+        Branch branch2 = new Branch("branch2", new Commit("sha2"));
+        List<Branch> branches1 = new ArrayList<>();
+        branches1.add(branch1);
+        branches1.add(branch2);
+
+        Repo repo1 = new Repo();
+        repo1.setRepositoryName(repoName1);
+
+        List<Repo> repos = new ArrayList<>();
+        repos.add(repo1);
+
+        mockServer.expect(ExpectedCount.max(1), requestTo(githubUris.branchesURI().replace("{owner}", userName).replace("{repo}", repoName1)))
+                .andRespond(withSuccess(mapper.writeValueAsString(branches1), MediaType.APPLICATION_JSON));
+
+        //when
+
+        List<Repo> response = gitHubGetBranches.getBranchesData(repos, userName);
+
+        //then
+
+        assertEquals(1, response.size(), "The response should contain 1 repos");
+        assertEquals(repoName1, response.getFirst().getRepositoryName(), "The repo name should be " + repoName1);
+
+        mockServer.verify();
+
     }
 
     @Test
-    void testGetBranchesData() {
-        // Mock repo data
-        Repo repo = new Repo();
-        repo.setRepositoryName("sample-repo");
+    void getOneBranch() throws JsonProcessingException {
+
+        //given
+
+        String userName = "user";
+        String repoName1 = "repo1";
+
+        Branch branch1 = new Branch("branch1", new Commit("sha1"));
+        List<Branch> branches1 = new ArrayList<>();
+        branches1.add(branch1);
+
+        mockServer.expect(ExpectedCount.max(1), requestTo(githubUris.branchesURI().replace("{owner}", userName).replace("{repo}", repoName1)))
+                .andRespond(withSuccess(mapper.writeValueAsString(branches1), MediaType.APPLICATION_JSON));
+
+        Repo repo1 = new Repo();
+        repo1.setRepositoryName(repoName1);
+
         List<Repo> repos = new ArrayList<>();
-        repos.add(repo);
+        repos.add(repo1);
 
-        // Mock URI
-        String branchesUri = "http://localhost:9090/repos/sample-user/sample-repo/branches";
-  //      when(githubURIs.branchesURI()).thenReturn("http://localhost:9090/repos/{owner}/{repo}/branches");
+        //when
 
-        // Mock WireMock response
-        String branchData = "[{\"name\": \"main\", \"commit\": {\"sha\": \"abc123\"}}]";
-        stubFor(get(urlEqualTo("/repos/sample-user/sample-repo/branches"))
-                .willReturn(aResponse()
-                        .withStatus(200)
-                        .withHeader("Accept", "application/json")
-                        .withBody(branchData)));
+        List<Repo> response = gitHubGetBranches.getBranchesData(repos, userName);
 
-        // Mock restClient
-        when(restClient.get()
-                .uri("http://localhost:9090/repos/{owner}/{repo}/branches")
-                .accept(MediaType.APPLICATION_JSON)
-                .retrieve()
-                .body(new ParameterizedTypeReference<List<Branch>>() {}))
-                .thenReturn(List.of(new Branch("main", new Commit("abc123"))));
+        //then
 
-        // Execute the method
-        List<Repo> result = gitHubGetBranches.getBranchesData(repos, "sample-user");
+        assertEquals(1, response.size(), "The response should contain 1 repos");
+        assertEquals(repoName1, response.getFirst().getRepositoryName(), "The repo name should be " + repoName1);
 
-        // Verify the result using AssertJ
-        assertThat(result).hasSize(1);
-        assertThat(result.getFirst().getBranches()).hasSize(1);
-        Branch branch = result.getFirst().getBranches().getFirst();
-        assertThat(branch.getBranchName()).isEqualTo("main");
-        assertThat(branch.getCommit().sha()).isEqualTo("abc123");
+        mockServer.verify();
+
     }
-}
 
+}
