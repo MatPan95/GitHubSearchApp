@@ -2,108 +2,154 @@ package org.example.githubsearchapp.dataAccetion;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.example.githubsearchapp.AppConfig;
-import org.example.githubsearchapp.TestConfig;
+import com.github.tomakehurst.wiremock.client.WireMock;
+import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import org.example.githubsearchapp.dataAccetion.model.Branch;
 import org.example.githubsearchapp.dataAccetion.model.Commit;
 import org.example.githubsearchapp.dataAccetion.model.Repo;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.client.RestClientTest;
-import org.springframework.context.annotation.Import;
-import org.springframework.http.MediaType;
-import org.springframework.test.web.client.ExpectedCount;
-import org.springframework.test.web.client.MockRestServiceServer;
-import org.springframework.test.web.client.UnorderedRequestExpectationManager;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
-import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
+import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
+import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
 
-@RestClientTest(GitHubGetBranches.class)
-@Import({AppConfig.class, TestConfig.class})
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class GitHubGetBranchesTest {
+
     @Autowired
     private GitHubGetBranches gitHubGetBranches;
-    @Autowired
-    private GithubURIs githubUris;
-    @Autowired
-    ObjectMapper mapper;
-    @Autowired
-    MockRestServiceServer mockServer = MockRestServiceServer.bindTo(new RestTemplate()).ignoreExpectOrder(true).build(new UnorderedRequestExpectationManager());
+
+    @RegisterExtension
+    static WireMockExtension wireMockServer = WireMockExtension.newInstance()
+            .options(
+                    wireMockConfig()
+                            .dynamicPort()
+                            .usingFilesUnderClasspath("wiremock")
+                            .asynchronousResponseEnabled(true)
+            )
+            .build();
+
+    @DynamicPropertySource
+    static void configureProperties(DynamicPropertyRegistry registry) {
+        registry.add("github.api.branches-url",() -> wireMockServer.baseUrl() + "/repos/{owner}/{repo}/branches");
+    }
 
     @Test
-    void getMoreThenOneBranch() throws JsonProcessingException {
+    void getBranchesData() throws JsonProcessingException {
 
         //given
+        String userName = "testUser";
 
-        String userName = "user";
-        String repoName1 = "repo1";
+        Branch branch1 = new Branch();
+        branch1.setBranchName("branch1");
+        branch1.setCommit(new Commit("sha1"));
 
-        Branch branch1 = new Branch("branch1", new Commit("sha1"));
-        Branch branch2 = new Branch("branch2", new Commit("sha2"));
+        Branch branch2 = new Branch();
+        branch2.setBranchName("branch2");
+        branch2.setCommit(new Commit("sha2"));
+
+        List<Branch> branches = new ArrayList<>();
+        branches.add(branch1);
+        branches.add(branch2);
+
+        Repo repo = new Repo();
+        repo.setRepositoryName("repo");
+
+        List<Repo> repos = new ArrayList<>(Collections.singleton(repo));
+
+        ObjectMapper objectMapper = new ObjectMapper();
+
+        wireMockServer.stubFor(WireMock.get(WireMock.urlPathEqualTo("/repos/testUser/repo/branches"))
+                .willReturn(WireMock.aResponse()
+                        .withHeader("Content-Type", "application/json")
+                        .withStatus(200)
+                        .withBody(objectMapper.writeValueAsString(branches))));
+
+        //when
+        List<Repo> response = gitHubGetBranches.getBranchesData(repos, userName);
+
+        //then
+        assertThat(response).hasSize(1);
+        assertThat(response.getFirst().getRepositoryName()).isEqualTo("repo");
+        assertThat(response.getFirst().getBranches().getFirst().getBranchName()).isEqualTo("branch1");
+        assertThat(response.getFirst().getBranches().get(1).getBranchName()).isEqualTo("branch2");
+
+    }
+
+    @Test
+    void getBranchesDataForTwoRepos() throws JsonProcessingException {
+
+        //given
+        String userName = "testUser";
+
+        Branch branch1 = new Branch();
+        branch1.setBranchName("branch1");
+        branch1.setCommit(new Commit("sha1"));
+
+        Branch branch2 = new Branch();
+        branch2.setBranchName("branch2");
+        branch2.setCommit(new Commit("sha2"));
+
         List<Branch> branches1 = new ArrayList<>();
         branches1.add(branch1);
         branches1.add(branch2);
 
+        Branch branch3 = new Branch();
+        branch3.setBranchName("branch3");
+        branch3.setCommit(new Commit("sha3"));
+
+        Branch branch4 = new Branch();
+        branch4.setBranchName("branch4");
+        branch4.setCommit(new Commit("sha4"));
+
+        List<Branch> branches2 = new ArrayList<>();
+        branches2.add(branch3);
+        branches2.add(branch4);
+
         Repo repo1 = new Repo();
-        repo1.setRepositoryName(repoName1);
+        Repo repo2 = new Repo();
+        repo1.setRepositoryName("repo1");
+        repo2.setRepositoryName("repo2");
 
         List<Repo> repos = new ArrayList<>();
         repos.add(repo1);
+        repos.add(repo2);
 
-        mockServer.expect(ExpectedCount.max(1), requestTo(githubUris.branchesURI().replace("{owner}", userName).replace("{repo}", repoName1)))
-                .andRespond(withSuccess(mapper.writeValueAsString(branches1), MediaType.APPLICATION_JSON));
+        ObjectMapper objectMapper = new ObjectMapper();
+
+        wireMockServer.stubFor(WireMock.get(WireMock.urlPathEqualTo("/repos/testUser/repo1/branches"))
+                .willReturn(WireMock.aResponse()
+                        .withHeader("Content-Type", "application/json")
+                        .withStatus(200)
+                        .withBody(objectMapper.writeValueAsString(branches1))));
+
+        wireMockServer.stubFor(WireMock.get(WireMock.urlPathEqualTo("/repos/testUser/repo2/branches"))
+                .willReturn(WireMock.aResponse()
+                        .withHeader("Content-Type", "application/json")
+                        .withStatus(200)
+                        .withBody(objectMapper.writeValueAsString(branches2))));
 
         //when
-
         List<Repo> response = gitHubGetBranches.getBranchesData(repos, userName);
 
         //then
-
-        assertEquals(1, response.size(), "The response should contain 1 repos");
-        assertEquals(repoName1, response.getFirst().getRepositoryName(), "The repo name should be " + repoName1);
-
-        mockServer.verify();
-
-    }
-
-    @Test
-    void getOneBranch() throws JsonProcessingException {
-
-        //given
-
-        String userName = "user";
-        String repoName1 = "repo1";
-
-        Branch branch1 = new Branch("branch1", new Commit("sha1"));
-        List<Branch> branches1 = new ArrayList<>();
-        branches1.add(branch1);
-
-        mockServer.expect(ExpectedCount.max(1), requestTo(githubUris.branchesURI().replace("{owner}", userName).replace("{repo}", repoName1)))
-                .andRespond(withSuccess(mapper.writeValueAsString(branches1), MediaType.APPLICATION_JSON));
-
-        Repo repo1 = new Repo();
-        repo1.setRepositoryName(repoName1);
-
-        List<Repo> repos = new ArrayList<>();
-        repos.add(repo1);
-
-        //when
-
-        List<Repo> response = gitHubGetBranches.getBranchesData(repos, userName);
-
-        //then
-
-        assertEquals(1, response.size(), "The response should contain 1 repos");
-        assertEquals(repoName1, response.getFirst().getRepositoryName(), "The repo name should be " + repoName1);
-
-        mockServer.verify();
+        assertThat(response).hasSize(2);
+        assertThat(response.getFirst().getRepositoryName()).isEqualTo("repo1");
+        assertThat(response.getFirst().getBranches().getFirst().getBranchName()).isEqualTo("branch1");
+        assertThat(response.getFirst().getBranches().get(1).getBranchName()).isEqualTo("branch2");
+        assertThat(response.get(1).getRepositoryName()).isEqualTo("repo2");
+        assertThat(response.get(1).getBranches().getFirst().getBranchName()).isEqualTo("branch3");
+        assertThat(response.get(1).getBranches().get(1).getBranchName()).isEqualTo("branch4");
 
     }
+
 
 }

@@ -21,12 +21,12 @@ public class GitHubGetRepos implements getUserRepos {
     private RestClient restClient;
 
     @Autowired
-    private GithubURIs githubURIs;
+    private String githubReposURL;
 
     @Override
     public List<Repo> getReposData(String userName){
     return restClient.get()
-            .uri(githubURIs.reposURI().replace("{username}", userName))
+            .uri(githubReposURL.replace("{username}", userName))
             .accept(MediaType.APPLICATION_JSON)
             .retrieve()
             .onStatus(status -> status.value() == 404, (request, response) -> {throw new UserNotFoundException();})

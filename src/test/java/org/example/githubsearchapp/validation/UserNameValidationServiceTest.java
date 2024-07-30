@@ -8,7 +8,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @SpringBootTest
-public class UserNameValidationServiceTest {
+class UserNameValidationServiceTest {
 
     private UserNameValidationService userNameValidationService;
 

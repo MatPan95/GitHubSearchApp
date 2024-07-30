@@ -11,7 +11,7 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @SpringBootTest
-public class MediaTypeValidationServiceTest {
+class MediaTypeValidationServiceTest {
 
     private MediaTypeValidationService mediaTypeValidationService;
 

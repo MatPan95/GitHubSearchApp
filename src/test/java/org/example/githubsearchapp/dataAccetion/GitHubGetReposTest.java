@@ -2,120 +2,96 @@ package org.example.githubsearchapp.dataAccetion;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.example.githubsearchapp.AppConfig;
-import org.example.githubsearchapp.TestConfig;
+import com.github.tomakehurst.wiremock.client.WireMock;
+import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
+import org.example.githubsearchapp.Exceptions.UserNotFoundException;
 import org.example.githubsearchapp.dataAccetion.model.Owner;
 import org.example.githubsearchapp.dataAccetion.model.Repo;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.client.RestClientTest;
-import org.springframework.context.annotation.Import;
-import org.springframework.http.MediaType;
-import org.springframework.test.web.client.MockRestServiceServer;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
+
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
-import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
+import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
 
-@RestClientTest(GitHubGetRepos.class)
-@Import({AppConfig.class, TestConfig.class})
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class GitHubGetReposTest {
 
     @Autowired
     private GitHubGetRepos gitHubGetRepos;
-    @Autowired
-    private GithubURIs githubUris;
-    @Autowired
-    private MockRestServiceServer server;
-    @Autowired
-    ObjectMapper mapper;
+
+    @RegisterExtension
+    static WireMockExtension wireMockServer = WireMockExtension.newInstance()
+            .options(
+                    wireMockConfig()
+                            .dynamicPort()
+                            .usingFilesUnderClasspath("wiremock")
+            )
+            .build();
+
+    @DynamicPropertySource
+    static void configureProperties(DynamicPropertyRegistry registry) {
+        registry.add("github.api.repos-url",() -> wireMockServer.baseUrl() + "/users/{username}/repos");
+    }
 
     @Test
-    void getMoreThenOneReposData() throws JsonProcessingException {
+    void getReposData() throws JsonProcessingException {
 
         //given
-
-        String userName = "user";
+        String userName = "testUser";
 
         Repo repo1 = new Repo();
-        repo1.setOwner(new Owner(userName));
         repo1.setRepositoryName("repository1");
+        repo1.setOwner(new Owner("owner1"));
         repo1.setFork(false);
 
         Repo repo2 = new Repo();
-        repo2.setOwner(new Owner(userName));
         repo2.setRepositoryName("repository2");
+        repo2.setOwner(new Owner("owner2"));
         repo2.setFork(false);
 
         List<Repo> repos = new ArrayList<>();
         repos.add(repo1);
         repos.add(repo2);
 
+        ObjectMapper objectMapper = new ObjectMapper();
 
-        server.expect(requestTo(githubUris.reposURI().replace("{username}", userName)))
-                .andRespond(withSuccess(mapper.writeValueAsString(repos), MediaType.APPLICATION_JSON));
+        wireMockServer.stubFor(WireMock.get(WireMock.urlPathEqualTo("/users/testUser/repos"))
+                .willReturn(WireMock.aResponse()
+                        .withHeader("Content-Type", "application/json")
+                        .withStatus(200)
+                        .withBody(objectMapper.writeValueAsString(repos))));
 
         //when
-
         List<Repo> response = gitHubGetRepos.getReposData(userName);
 
         //then
-
         assertThat(response).hasSize(2);
-        assertThat(response.get(0).getRepositoryName()).isEqualTo("repository1");
-        assertThat(response.get(1).getRepositoryName()).isEqualTo("repository2");
-    }
-
-    @Test
-    void getOneReposData() throws JsonProcessingException {
-
-        //given
-
-        String userName = "user";
-
-        Repo repo = new Repo();
-        repo.setOwner(new Owner(userName));
-        repo.setRepositoryName("repository1");
-        repo.setFork(false);
-
-        List<Repo> repos = new ArrayList<>();
-        repos.add(repo);
-
-
-        server.expect(requestTo(githubUris.reposURI().replace("{username}", userName)))
-                .andRespond(withSuccess(mapper.writeValueAsString(repos), MediaType.APPLICATION_JSON));
-
-        //when
-
-        List<Repo> response = gitHubGetRepos.getReposData(userName);
-
-        //then
-
-        assertThat(response).hasSize(1);
         assertThat(response.getFirst().getRepositoryName()).isEqualTo("repository1");
     }
 
     @Test
-    void getEmptyReposData() throws JsonProcessingException {
+    void throwingUserNotFoundException() {
 
         //given
+        String userName = "testUser";
 
-        String userName = "user";
+        wireMockServer.stubFor(WireMock.get(WireMock.urlPathEqualTo("/users/testUser/repos"))
+                .willReturn(WireMock.aResponse()
+                        .withHeader("Content-Type", "application/json")
+                        .withStatus(404)));
 
-        List<Repo> repos = new ArrayList<>();
-
-
-        server.expect(requestTo(githubUris.reposURI().replace("{username}", userName)))
-                .andRespond(withSuccess(mapper.writeValueAsString(repos), MediaType.APPLICATION_JSON));
-
-        //when
-
-        List<Repo> response = gitHubGetRepos.getReposData(userName);
-
-        //then
-
-        assertThat(response).hasSize(0);
+        // when & given
+        assertThatThrownBy(() -> gitHubGetRepos.getReposData(userName))
+                .isInstanceOf(UserNotFoundException.class);
     }
+
+
 }

@@ -17,7 +17,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
 
 @SpringBootTest(classes = AppServiceTest.class)
-public class AppServiceTest {
+class AppServiceTest {
 
     @Mock
     private GitHubGetRepos gitHubGetRepos;
@@ -36,7 +36,7 @@ public class AppServiceTest {
     @Test
     void testGetUserRepos_withNonForkRepos() {
         // Given
-        String userName = "testuser";
+        String userName = "testUser";
         List<Repo> repos = new ArrayList<>();
         Repo repo1 = new Repo();
         repo1.setFork(false);
@@ -45,10 +45,9 @@ public class AppServiceTest {
         repos.add(repo1);
         repos.add(repo2);
 
+        // When
         when(gitHubGetRepos.getReposData(userName)).thenReturn(repos);
         when(gitHubGetBranches.getBranchesData(repos, userName)).thenReturn(repos);
-
-        // When
         List<Repo> result = appService.getUserRepos(userName);
 
         // Then
@@ -60,7 +59,7 @@ public class AppServiceTest {
     @Test
     void testGetUserRepos_withForkRepos() {
         // Given
-        String userName = "testuser";
+        String userName = "testUser";
         List<Repo> repos = new ArrayList<>();
         Repo repo1 = new Repo();
         repo1.setFork(true);
@@ -69,25 +68,21 @@ public class AppServiceTest {
         repos.add(repo1);
         repos.add(repo2);
 
-        List<Repo> nonForkRepos = new ArrayList<>();
-        nonForkRepos.add(repo2);
-
-        when(gitHubGetRepos.getReposData(userName)).thenReturn(repos);
-        when(gitHubGetBranches.getBranchesData(nonForkRepos, userName)).thenReturn(nonForkRepos);
-
         // When
+        when(gitHubGetRepos.getReposData(userName)).thenReturn(repos);
+        when(gitHubGetBranches.getBranchesData(repos, userName)).thenReturn(repos);
         List<Repo> result = appService.getUserRepos(userName);
 
         // Then
         assertThat(result).hasSize(1);
         verify(gitHubGetRepos, times(1)).getReposData(userName);
-        verify(gitHubGetBranches, times(1)).getBranchesData(nonForkRepos, userName);
+        verify(gitHubGetBranches, times(1)).getBranchesData(repos, userName);
     }
 
     @Test
     void testGetUserRepos_withNoRepos() {
         // Given
-        String userName = "testuser";
+        String userName = "testUser";
         List<Repo> repos = new ArrayList<>();
 
         when(gitHubGetRepos.getReposData(userName)).thenReturn(repos);

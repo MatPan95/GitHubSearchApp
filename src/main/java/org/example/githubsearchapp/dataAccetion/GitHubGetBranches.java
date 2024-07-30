@@ -21,7 +21,7 @@ public class GitHubGetBranches implements getRepoBranches {
     private RestClient restClient;
 
     @Autowired
-    private GithubURIs githubURIs;
+    private String githubBranchesURL;
 
 
     @Override
@@ -29,7 +29,7 @@ public class GitHubGetBranches implements getRepoBranches {
 
         return repos.parallelStream().peek(repo -> repo.setBranches(
                 restClient.get()
-                        .uri(githubURIs.branchesURI()
+                        .uri(githubBranchesURL
                                 .replace("{owner}", userName)
                                 .replace("{repo}", repo.getRepositoryName()))
                         .accept(MediaType.APPLICATION_JSON)

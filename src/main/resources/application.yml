@@ -4,5 +4,5 @@ spring:
       enabled: true
 github:
   api:
-    repos-endpoint: https://api.github.com/users/{username}/repos
-    branches-endpoint: https://api.github.com/repos/{owner}/{repo}/branches
+    repos-url: https://api.github.com/users/{username}/repos
+    branches-url: https://api.github.com/repos/{owner}/{repo}/branches
