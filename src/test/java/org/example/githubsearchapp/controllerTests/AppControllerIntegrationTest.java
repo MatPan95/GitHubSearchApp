@@ -35,9 +35,6 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 class AppControllerIntegrationTest {
 
     @Autowired
-    private MockMvc mockMvc;
-
-    @Autowired
     private AppController appController;
 
     @RegisterExtension

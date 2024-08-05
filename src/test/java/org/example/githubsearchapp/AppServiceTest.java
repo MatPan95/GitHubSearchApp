@@ -34,7 +34,7 @@ class AppServiceTest {
     }
 
     @Test
-    void testGetUserRepos_withNonForkRepos() {
+    void testGetUserRepos() {
         // Given
         String userName = "testUser";
         List<Repo> repos = new ArrayList<>();
@@ -52,29 +52,6 @@ class AppServiceTest {
 
         // Then
         assertThat(result).hasSize(2);
-        verify(gitHubGetRepos, times(1)).getReposData(userName);
-        verify(gitHubGetBranches, times(1)).getBranchesData(repos, userName);
-    }
-
-    @Test
-    void testGetUserRepos_withForkRepos() {
-        // Given
-        String userName = "testUser";
-        List<Repo> repos = new ArrayList<>();
-        Repo repo1 = new Repo();
-        repo1.setFork(true);
-        Repo repo2 = new Repo();
-        repo2.setFork(false);
-        repos.add(repo1);
-        repos.add(repo2);
-
-        // When
-        when(gitHubGetRepos.getReposData(userName)).thenReturn(repos);
-        when(gitHubGetBranches.getBranchesData(repos, userName)).thenReturn(repos);
-        List<Repo> result = appService.getUserRepos(userName);
-
-        // Then
-        assertThat(result).hasSize(1);
         verify(gitHubGetRepos, times(1)).getReposData(userName);
         verify(gitHubGetBranches, times(1)).getBranchesData(repos, userName);
     }

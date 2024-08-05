@@ -54,19 +54,18 @@ class GitHubGetReposTest {
         String serverResponse = stream1.collect(Collectors.joining());
         stream1.close();
 
-        ObjectMapper objectMapper = new ObjectMapper();
-
         wireMockServer.stubFor(WireMock.get(WireMock.urlPathEqualTo("/users/testUser/repos"))
                 .willReturn(WireMock.aResponse()
                         .withHeader("Content-Type", "application/json")
                         .withStatus(200)
                         .withBody(serverResponse)));
 
-
         //when
         List<Repo> clientResponse = gitHubGetRepos.getReposData(userName);
 
         //then
+        ObjectMapper objectMapper = new ObjectMapper();
+
         Assertions.assertThat(objectMapper.writeValueAsString(clientResponse).hashCode())
                 .as("Check if serverResponse and clientResponse are equal")
                 .isEqualTo(serverResponse.hashCode());
