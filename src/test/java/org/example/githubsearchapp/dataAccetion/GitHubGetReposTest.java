@@ -1,11 +1,11 @@
 package org.example.githubsearchapp.dataAccetion;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
+import lombok.SneakyThrows;
+import org.assertj.core.api.Assertions;
 import org.example.githubsearchapp.Exceptions.UserNotFoundException;
-import org.example.githubsearchapp.dataAccetion.model.Owner;
 import org.example.githubsearchapp.dataAccetion.model.Repo;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
@@ -14,12 +14,14 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 
-import java.util.ArrayList;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class GitHubGetReposTest {
@@ -42,24 +44,15 @@ class GitHubGetReposTest {
     }
 
     @Test
-    void getReposData() throws JsonProcessingException {
+    @SneakyThrows
+    void getReposData() {
 
         //given
         String userName = "testUser";
 
-        Repo repo1 = new Repo();
-        repo1.setRepositoryName("repository1");
-        repo1.setOwner(new Owner("owner1"));
-        repo1.setFork(false);
-
-        Repo repo2 = new Repo();
-        repo2.setRepositoryName("repository2");
-        repo2.setOwner(new Owner("owner2"));
-        repo2.setFork(false);
-
-        List<Repo> repos = new ArrayList<>();
-        repos.add(repo1);
-        repos.add(repo2);
+        Stream<String> stream1 = Files.lines(Paths.get("src/test/resources/dataAccetion/repos.json"));
+        String serverResponse = stream1.collect(Collectors.joining());
+        stream1.close();
 
         ObjectMapper objectMapper = new ObjectMapper();
 
@@ -67,14 +60,17 @@ class GitHubGetReposTest {
                 .willReturn(WireMock.aResponse()
                         .withHeader("Content-Type", "application/json")
                         .withStatus(200)
-                        .withBody(objectMapper.writeValueAsString(repos))));
+                        .withBody(serverResponse)));
+
 
         //when
-        List<Repo> response = gitHubGetRepos.getReposData(userName);
+        List<Repo> clientResponse = gitHubGetRepos.getReposData(userName);
 
         //then
-        assertThat(response).hasSize(2);
-        assertThat(response.getFirst().getRepositoryName()).isEqualTo("repository1");
+        Assertions.assertThat(objectMapper.writeValueAsString(clientResponse).hashCode())
+                .as("Check if serverResponse and clientResponse are equal")
+                .isEqualTo(serverResponse.hashCode());
+
     }
 
     @Test

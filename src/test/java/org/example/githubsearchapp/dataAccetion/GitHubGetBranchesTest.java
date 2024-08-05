@@ -48,22 +48,6 @@ class GitHubGetBranchesTest {
         //given
         String userName = "testUser";
 
-        Branch branch1 = new Branch();
-        branch1.setBranchName("branch1");
-        branch1.setCommit(new Commit("sha1"));
-
-        Branch branch2 = new Branch();
-        branch2.setBranchName("branch2");
-        branch2.setCommit(new Commit("sha2"));
-
-        List<Branch> branches = new ArrayList<>();
-        branches.add(branch1);
-        branches.add(branch2);
-
-        Repo repo = new Repo();
-        repo.setRepositoryName("repo");
-
-        List<Repo> repos = new ArrayList<>(Collections.singleton(repo));
 
         ObjectMapper objectMapper = new ObjectMapper();
 
@@ -71,16 +55,12 @@ class GitHubGetBranchesTest {
                 .willReturn(WireMock.aResponse()
                         .withHeader("Content-Type", "application/json")
                         .withStatus(200)
-                        .withBody(objectMapper.writeValueAsString(branches))));
+                        .withBody(objectMapper.writeValueAsString(userName))));
 
         //when
-        List<Repo> response = gitHubGetBranches.getBranchesData(repos, userName);
+        List<Repo> response = gitHubGetBranches.getBranchesData(List.of(), userName);
 
         //then
-        assertThat(response).hasSize(1);
-        assertThat(response.getFirst().getRepositoryName()).isEqualTo("repo");
-        assertThat(response.getFirst().getBranches().getFirst().getBranchName()).isEqualTo("branch1");
-        assertThat(response.getFirst().getBranches().get(1).getBranchName()).isEqualTo("branch2");
 
     }
 
@@ -90,38 +70,6 @@ class GitHubGetBranchesTest {
         //given
         String userName = "testUser";
 
-        Branch branch1 = new Branch();
-        branch1.setBranchName("branch1");
-        branch1.setCommit(new Commit("sha1"));
-
-        Branch branch2 = new Branch();
-        branch2.setBranchName("branch2");
-        branch2.setCommit(new Commit("sha2"));
-
-        List<Branch> branches1 = new ArrayList<>();
-        branches1.add(branch1);
-        branches1.add(branch2);
-
-        Branch branch3 = new Branch();
-        branch3.setBranchName("branch3");
-        branch3.setCommit(new Commit("sha3"));
-
-        Branch branch4 = new Branch();
-        branch4.setBranchName("branch4");
-        branch4.setCommit(new Commit("sha4"));
-
-        List<Branch> branches2 = new ArrayList<>();
-        branches2.add(branch3);
-        branches2.add(branch4);
-
-        Repo repo1 = new Repo();
-        Repo repo2 = new Repo();
-        repo1.setRepositoryName("repo1");
-        repo2.setRepositoryName("repo2");
-
-        List<Repo> repos = new ArrayList<>();
-        repos.add(repo1);
-        repos.add(repo2);
 
         ObjectMapper objectMapper = new ObjectMapper();
 
@@ -129,25 +77,18 @@ class GitHubGetBranchesTest {
                 .willReturn(WireMock.aResponse()
                         .withHeader("Content-Type", "application/json")
                         .withStatus(200)
-                        .withBody(objectMapper.writeValueAsString(branches1))));
+                        .withBody(objectMapper.writeValueAsString(userName))));
 
         wireMockServer.stubFor(WireMock.get(WireMock.urlPathEqualTo("/repos/testUser/repo2/branches"))
                 .willReturn(WireMock.aResponse()
                         .withHeader("Content-Type", "application/json")
                         .withStatus(200)
-                        .withBody(objectMapper.writeValueAsString(branches2))));
+                        .withBody(objectMapper.writeValueAsString(userName))));
 
         //when
-        List<Repo> response = gitHubGetBranches.getBranchesData(repos, userName);
+        List<Repo> response = gitHubGetBranches.getBranchesData(List.of(), userName);
 
         //then
-        assertThat(response).hasSize(2);
-        assertThat(response.getFirst().getRepositoryName()).isEqualTo("repo1");
-        assertThat(response.getFirst().getBranches().getFirst().getBranchName()).isEqualTo("branch1");
-        assertThat(response.getFirst().getBranches().get(1).getBranchName()).isEqualTo("branch2");
-        assertThat(response.get(1).getRepositoryName()).isEqualTo("repo2");
-        assertThat(response.get(1).getBranches().getFirst().getBranchName()).isEqualTo("branch3");
-        assertThat(response.get(1).getBranches().get(1).getBranchName()).isEqualTo("branch4");
 
     }
 

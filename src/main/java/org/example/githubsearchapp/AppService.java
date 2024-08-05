@@ -16,7 +16,10 @@ public class AppService {
 
     public List<Repo> getUserRepos(String userName) {
 
-        List<Repo> repos = gitHubGetRepos.getReposData(userName).stream().parallel().filter(repo -> !repo.isFork()).toList();
+        List<Repo> repos = gitHubGetRepos.getReposData(userName)
+                .stream().parallel()
+                .filter(repo -> !repo.isFork())
+                .toList();
 
         if(repos.isEmpty()) return repos;
 
