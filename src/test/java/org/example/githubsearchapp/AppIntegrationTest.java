@@ -1,13 +1,12 @@
-package org.example.githubsearchapp.controllerTests;
+package org.example.githubsearchapp;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
-import org.example.githubsearchapp.AppController;
-import org.example.githubsearchapp.dataAccetion.model.Branch;
-import org.example.githubsearchapp.dataAccetion.model.Commit;
-import org.example.githubsearchapp.dataAccetion.model.Owner;
+import lombok.SneakyThrows;
+import org.example.githubsearchapp.Exceptions.UserNotFoundException;
 import org.example.githubsearchapp.dataAccetion.model.Repo;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,24 +17,30 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
-import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 
-import java.util.ArrayList;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureMockMvc
-class AppControllerIntegrationTest {
+class AppIntegrationTest {
 
     @Autowired
     private AppController appController;
+
+    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final String userName = "testUser";
+    private String reposResponse;
+    private String branchesResponse;
+    private String response;
 
     @RegisterExtension
     static WireMockExtension wireMockServer = WireMockExtension.newInstance()
@@ -53,73 +58,78 @@ class AppControllerIntegrationTest {
         registry.add("github.api.repos-url",() -> wireMockServer.baseUrl() + "/users/{username}/repos");
     }
 
+    @SneakyThrows
+    @BeforeEach
+    void setUp() {
+        try (Stream<String> streamRepos = Files.lines(Paths.get("src/test/resources/dataAccetion/repos.json"))) {
+            reposResponse = streamRepos.collect(Collectors.joining());
+        }
+
+        try (Stream<String> streamBranchesBeforeTest = Files.lines(Paths.get("src/test/resources/dataAccetion/branchesBeforeTest.json"))) {
+            branchesResponse = streamBranchesBeforeTest.collect(Collectors.joining());
+        }
+
+        try (Stream<String> streamResponse = Files.lines(Paths.get("src/test/resources/response.json"))) {
+            response = streamResponse.collect(Collectors.joining());
+        }
+    }
+
     @Test
-    void testGetUserRepos() throws Exception {
+    @SneakyThrows
+    void testGetUserRepos()  {
         // given
-
-        String userName = "testUser";
-
-
-        ObjectMapper objectMapper = new ObjectMapper();
-
-
         wireMockServer.stubFor(WireMock.get(WireMock.urlPathEqualTo("/users/testUser/repos"))
                 .willReturn(WireMock.aResponse()
                         .withHeader("Content-Type", "application/json")
                         .withStatus(200)
-                        .withBody(objectMapper.writeValueAsString(userName))));
+                        .withBody(reposResponse)
+                )
+        );
 
         wireMockServer.stubFor(WireMock.get(WireMock.urlPathEqualTo("/repos/testUser/repo1/branches"))
                 .willReturn(WireMock.aResponse()
                         .withHeader("Content-Type", "application/json")
                         .withStatus(200)
-                        .withBody(objectMapper.writeValueAsString(userName))));
+                        .withBody(branchesResponse)
+                )
+        );
 
         wireMockServer.stubFor(WireMock.get(WireMock.urlPathEqualTo("/repos/testUser/repo2/branches"))
                 .willReturn(WireMock.aResponse()
                         .withHeader("Content-Type", "application/json")
                         .withStatus(200)
-                        .withBody(objectMapper.writeValueAsString(userName))));
+                        .withBody(branchesResponse)
+                )
+        );
+
+        wireMockServer.stubFor(WireMock.get(WireMock.urlPathEqualTo("/repos/testUser/repo3/branches"))
+                .willReturn(WireMock.aResponse()
+                        .withHeader("Content-Type", "application/json")
+                        .withStatus(200)
+                        .withBody(branchesResponse)
+                )
+        );
 
         //when
-
-        ResponseEntity<List<Repo>> responseEntity = appController.getUserRepos(userName, Optional.of(MediaType.APPLICATION_JSON));
-
+        ResponseEntity<List<Repo>> responseEntity =  appController
+                .getUserRepos(userName, Optional.of(MediaType.APPLICATION_JSON));
 
         //then
-
         assertThat(responseEntity.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(responseEntity.getBody()).isNotNull();
-        assertThat(Objects.requireNonNull(responseEntity.getBody()).size()).isEqualTo(2);
-
+        assertThat(objectMapper.writeValueAsString(responseEntity.getBody()).hashCode())
+                .as("Check if serverResponse and clientResponse are equal")
+                .isEqualTo(response.hashCode());
     }
 
     @Test
-    void testGetUserReposEmptyRepos() throws Exception {
-        // given
-        String userName = "testUser";
-        List<Repo> repos = new ArrayList<>();
-        ObjectMapper objectMapper = new ObjectMapper();
+    void testGetUserReposUserNotFound(){
 
         wireMockServer.stubFor(WireMock.get(WireMock.urlPathEqualTo("/users/testUser/repos"))
                 .willReturn(WireMock.aResponse()
                         .withHeader("Content-Type", "application/json")
-                        .withStatus(200)
-                        .withBody(objectMapper.writeValueAsString(repos))));
+                        .withStatus(404)));
 
-        //when
-        ResponseEntity<List<Repo>> responseEntity = appController.getUserRepos(userName, Optional.of(MediaType.APPLICATION_JSON));
-
-        //then
-        assertThat(responseEntity.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(Objects.requireNonNull(responseEntity.getBody()).size()).isEqualTo(0);
-
-    }
-
-    @Test
-    void testGetUserReposUserNotFound() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.get("/invalidUser")
-                        .header("Accept", MediaType.APPLICATION_JSON))
-                .andExpect(MockMvcResultMatchers.status().isNotFound());
+        assertThrows(UserNotFoundException.class, () ->
+                appController.getUserRepos(userName, Optional.of(MediaType.APPLICATION_JSON)));
     }
 }

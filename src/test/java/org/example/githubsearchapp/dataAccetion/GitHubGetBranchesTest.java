@@ -7,6 +7,7 @@ import lombok.SneakyThrows;
 import org.assertj.core.api.Assertions;
 import org.example.githubsearchapp.dataAccetion.model.Owner;
 import org.example.githubsearchapp.dataAccetion.model.Repo;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,6 +30,14 @@ class GitHubGetBranchesTest {
     @Autowired
     private GitHubGetBranches gitHubGetBranches;
 
+    private final String userName = "testUser";
+    private final Repo repo1 = new Repo();
+    private final Repo repo2 = new Repo();
+    private final List<Repo> repos = new ArrayList<>();
+    private String serverResponse;
+    private String clientResponseController;
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
     @RegisterExtension
     static WireMockExtension wireMockServer = WireMockExtension.newInstance()
             .options(
@@ -44,31 +53,33 @@ class GitHubGetBranchesTest {
         registry.add("github.api.branches-url",() -> wireMockServer.baseUrl() + "/repos/{owner}/{repo}/branches");
     }
 
+    @BeforeEach
+    @SneakyThrows
+    void setUp() {
+        repo1.setRepositoryName("testRepo1");
+        repo1.setOwner(new Owner(userName));
+        repo1.setFork(false);
+
+        repo2.setRepositoryName("testRepo2");
+        repo2.setOwner(new Owner(userName));
+        repo2.setFork(false);
+
+        repos.add(repo1);
+        repos.add(repo2);
+
+        try (Stream<String> streamBranchesBeforeTest = Files.lines(Paths.get("src/test/resources/dataAccetion/branchesBeforeTest.json"))) {
+            serverResponse = streamBranchesBeforeTest.collect(Collectors.joining());
+        }
+        try (Stream<String> streamBranchesAfterTest = Files.lines(Paths.get("src/test/resources/dataAccetion/branchesAfterTest.json"))) {
+            clientResponseController = streamBranchesAfterTest.collect(Collectors.joining());
+        }
+    }
+
     @Test
     @SneakyThrows
     void getBranchesData() {
 
         //given
-        String userName = "testUser";
-
-        Repo repo1 = new Repo();
-        repo1.setRepositoryName("testRepo1");
-        repo1.setOwner(new Owner(userName));
-        repo1.setFork(false);
-
-        Repo repo2 = new Repo();
-        repo2.setRepositoryName("testRepo2");
-        repo2.setOwner(new Owner(userName));
-        repo2.setFork(false);
-
-        List<Repo> repos = new ArrayList<>();
-        repos.add(repo1);
-        repos.add(repo2);
-
-        Stream<String> stream1 = Files.lines(Paths.get("src/test/resources/dataAccetion/branchesBeforeTest.json"));
-        String serverResponse = stream1.collect(Collectors.joining());
-        stream1.close();
-
         wireMockServer.stubFor(WireMock.get(WireMock.urlPathEqualTo("/repos/testUser/testRepo1/branches"))
                 .willReturn(WireMock.aResponse()
                         .withHeader("Content-Type", "application/json")
@@ -85,12 +96,6 @@ class GitHubGetBranchesTest {
         List<Repo> clientResponse = gitHubGetBranches.getBranchesData(repos, userName);
 
         //then
-        Stream<String> stream2 = Files.lines(Paths.get("src/test/resources/dataAccetion/branchesAfterTest.json"));
-        String clientResponseController = stream2.collect(Collectors.joining());
-        stream1.close();
-
-        ObjectMapper objectMapper = new ObjectMapper();
-
         Assertions.assertThat(objectMapper.writeValueAsString(clientResponse).hashCode())
                 .as("Check if serverResponse and clientResponse are equal")
                 .isEqualTo(clientResponseController.hashCode());

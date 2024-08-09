@@ -29,6 +29,9 @@ class GitHubGetReposTest {
     @Autowired
     private GitHubGetRepos gitHubGetRepos;
 
+    private final String userName = "testUser";
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
     @RegisterExtension
     static WireMockExtension wireMockServer = WireMockExtension.newInstance()
             .options(
@@ -48,11 +51,10 @@ class GitHubGetReposTest {
     void getReposData() {
 
         //given
-        String userName = "testUser";
-
-        Stream<String> stream1 = Files.lines(Paths.get("src/test/resources/dataAccetion/repos.json"));
-        String serverResponse = stream1.collect(Collectors.joining());
-        stream1.close();
+        String serverResponse;
+        try (Stream<String> streamRepos = Files.lines(Paths.get("src/test/resources/dataAccetion/repos.json"))) {
+            serverResponse = streamRepos.collect(Collectors.joining());
+        }
 
         wireMockServer.stubFor(WireMock.get(WireMock.urlPathEqualTo("/users/testUser/repos"))
                 .willReturn(WireMock.aResponse()
@@ -64,8 +66,6 @@ class GitHubGetReposTest {
         List<Repo> clientResponse = gitHubGetRepos.getReposData(userName);
 
         //then
-        ObjectMapper objectMapper = new ObjectMapper();
-
         Assertions.assertThat(objectMapper.writeValueAsString(clientResponse).hashCode())
                 .as("Check if serverResponse and clientResponse are equal")
                 .isEqualTo(serverResponse.hashCode());
@@ -76,8 +76,6 @@ class GitHubGetReposTest {
     void throwingUserNotFoundException() {
 
         //given
-        String userName = "testUser";
-
         wireMockServer.stubFor(WireMock.get(WireMock.urlPathEqualTo("/users/testUser/repos"))
                 .willReturn(WireMock.aResponse()
                         .withHeader("Content-Type", "application/json")

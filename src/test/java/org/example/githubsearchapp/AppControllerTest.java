@@ -1,11 +1,8 @@
-package org.example.githubsearchapp.controllerTests;
+package org.example.githubsearchapp;
 
-import org.example.githubsearchapp.AppController;
-import org.example.githubsearchapp.AppService;
 import org.example.githubsearchapp.dataAccetion.model.Repo;
 import org.example.githubsearchapp.validation.MediaTypeValidationService;
 import org.example.githubsearchapp.validation.UserNameValidationService;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -36,27 +33,23 @@ class AppControllerTest {
     @Mock
     private AppService appService;
 
-    private List<Repo> mockRepos;
+    @Test
+    void testGetUserRepos() {
+        // given
 
-    @BeforeEach
-    public void setUp() {
+        String userName = "testUser";
+
         Repo repo1 = new Repo();
         Repo repo2 = new Repo();
         repo1.setRepositoryName("repository1");
         repo2.setRepositoryName("repository2");
-        mockRepos = List.of(repo1, repo2);
-    }
-
-    @Test
-    void testGetUserRepos() {
-        // given
-        String username = "Dick";
+        List<Repo> mockRepos = List.of(repo1, repo2);
 
         // when
         doNothing().when(mediaTypeValidationService).validateMediaType(Optional.of(MediaType.APPLICATION_JSON));
-        doNothing().when(userNameValidationService).validateUser(username);
-        when(appService.getUserRepos(username)).thenReturn(mockRepos);
-        ResponseEntity<List<Repo>> response = appController.getUserRepos(username, Optional.of(MediaType.APPLICATION_JSON));
+        doNothing().when(userNameValidationService).validateUser(userName);
+        when(appService.getUserRepos(userName)).thenReturn(mockRepos);
+        ResponseEntity<List<Repo>> response = appController.getUserRepos(userName, Optional.of(MediaType.APPLICATION_JSON));
 
         // then
         assertEquals(HttpStatus.OK, response.getStatusCode());
